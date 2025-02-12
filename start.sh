@@ -24,7 +24,7 @@ if [ -z "${RUNNER_WORK_DIRECTORY}" ]; then
     RUNNER_WORK_DIRECTORY="_work"
 fi
 
-cd /home/runner
+cd /home/ubuntu/actions-runner
 
 ./config.sh \
     --unattended \

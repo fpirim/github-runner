@@ -4,15 +4,20 @@ services:
   github-runner:
     build: .
     environment:
-      - GITHUB_URL=${GITHUB_URL}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - RUNNER_NAME=${RUNNER_NAME:-self-hosted-runner}
-      - RUNNER_LABELS=${RUNNER_LABELS:-self-hosted,Linux,Docker}
-      - RUNNER_WORK_DIRECTORY=${RUNNER_WORK_DIRECTORY:-_work}
+      - GITHUB_URL=${GITHUB_URL}  # e.g., https://github.com/your-org/your-repo
+      - GITHUB_TOKEN=${GITHUB_TOKEN}  # GitHub personal access token with repo scope
+      - RUNNER_NAME=${RUNNER_NAME:-self-hosted-runner}  # Custom name for the runner
+      - RUNNER_LABELS=${RUNNER_LABELS:-self-hosted,Linux,Docker}  # Custom labels
+      - RUNNER_WORK_DIRECTORY=${RUNNER_WORK_DIRECTORY:-_work}  # Directory for runner workspace
+      - DEBIAN_FRONTEND=noninteractive
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - runner_data:/home/runner
+      - /var/run/docker.sock:/var/run/docker.sock  # Mount Docker socket
+      - runner_data:/home/runner  # Persist runner data
     restart: unless-stopped
+    init: true  # Use init process to handle signals properly
+    privileged: true  # Required for some Docker operations
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Enable host.docker.internal hostname
 
 volumes:
-  runner_data: 
+  runner_data:  # Named volume for runner data persistence

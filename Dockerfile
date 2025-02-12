@@ -1,53 +1,37 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
-# Set environment variables
-ENV RUNNER_VERSION=2.311.0
-ENV DEBIAN_FRONTEND=noninteractive
+ARG RUNNER_VERSION="2.319.1"
+ARG DOCKER_VERSION="27.2.0"
+ARG DOCKER_COMPOSE_VERSION="2.29.2"
 
-# Install necessary packages
-RUN apt-get update && apt-get install -y \
-    curl \
-    tar \
-    jq \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    python3 \
-    python3-pip \
-    python3-venv \
-    git \
-    sudo \
-    apt-transport-https \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    && rm -rf /var/lib/apt/lists/*
+ARG DEBIAN_FRONTEND=noninteractive
 
-# Install Docker CLI
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y docker-ce-cli \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt update -y && apt upgrade -y 
+RUN apt install -y --no-install-recommends \
+    sudo curl jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip
 
-# Create a user for the runner
-RUN useradd -m -s /bin/bash runner \
-    && usermod -aG sudo runner \
-    && usermod -aG docker runner \
-    && echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN groupadd -g 999 docker && \ 
+    groupadd -g 1001 ubuntu && \
+    useradd -rm -d /home/ubuntu -s /bin/bash -g ubuntu -G docker,sudo -u 1001 ubuntu && \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Switch to runner user
-USER runner
-WORKDIR /home/runner
+RUN cd /home/ubuntu && mkdir actions-runner && cd actions-runner && \
+    curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz && \
+    tar xzf ./actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz
 
-# Download and install GitHub runner
-RUN curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && tar xzf actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && rm actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+RUN curl -fsSL https://download.docker.com/linux/static/stable/armel/docker-${DOCKER_VERSION}.tgz | tar zxvf - --strip 1 -C /usr/bin docker/docker
+RUN mkdir -p /usr/local/lib/docker/cli-plugins
+RUN curl -SL https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-armv7 -o /usr/local/lib/docker/cli-plugins/docker-compose
+RUN chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-# Copy the startup script
-COPY --chown=runner:runner start.sh .
+RUN chown -R ubuntu ~ubuntu && /home/ubuntu/actions-runner/bin/installdependencies.sh
+
+COPY --chown=ubuntu:ubuntu start.sh .
 RUN sudo chmod u+x start.sh
+
+COPY start.sh start.sh
+RUN chmod +x start.sh
+
+USER ubuntu
 
 ENTRYPOINT ["./start.sh"]

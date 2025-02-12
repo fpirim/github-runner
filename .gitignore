@@ -1,1 +1,20 @@
+# Environment files
 .env
+.env.*
+!env.sample
+
+# Runner generated files
+_work/
+.runner
+.credentials
+.credentials_rsaparams
+.path
+.env*
+.runner_archive
+
+# Docker volumes
+runner_data/
+
+# System files
+.DS_Store
+Thumbs.db
