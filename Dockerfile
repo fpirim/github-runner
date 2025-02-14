@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt update -y && apt upgrade -y 
 RUN apt install -y --no-install-recommends \
-    sudo curl jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip
+    sudo curl jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip git
 
 RUN groupadd -g 999 docker && \ 
     groupadd -g 1001 ubuntu && \
